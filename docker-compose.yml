@@ -1,0 +1,16 @@
+services:
+  web:
+    build: .
+    container_name: 3d-pixel-web
+    ports:
+      - "3000:3000"            # cámbialo si el 3000 está ocupado, ej. "80:3000"
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: "file:../db/custom.db"
+      # AUTH_SECRET: "pon-aqui-un-secreto-largo-y-aleatorio"
+    volumes:
+      # La base de datos y las fotos/videos subidos viven FUERA del contenedor,
+      # así no se pierden al reconstruir o actualizar la imagen.
+      - ./db:/app/db
+      - ./public/uploads:/app/public/uploads
+    restart: unless-stopped

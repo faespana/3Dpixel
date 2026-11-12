@@ -1,0 +1,50 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Product {
+  id             String   @id @default(cuid())
+  name           String
+  description    String
+  price          Float
+  priceDozen     Float?
+  priceTwoDozen  Float?
+  priceThreeDozen Float?
+  priceBulk      Float?
+  category       String
+  image          String
+  featured       Boolean  @default(false)
+  /** Paleta de colores del producto: JSON `[{"name":"Negro","hex":"#111111"}]`. */
+  colors         String?
+  createdAt      DateTime @default(now())
+
+  media ProductMedia[]
+
+  @@index([category])
+}
+
+/** Fotos y videos cortos de un producto, ordenados para la galería. */
+model ProductMedia {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  url       String
+  type      String
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([productId, order])
+}
+
+model AdminUser {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  passwordHash String
+  salt         String
+  createdAt    DateTime @default(now())
+}

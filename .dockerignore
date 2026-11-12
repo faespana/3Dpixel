@@ -1,0 +1,21 @@
+# --- dependencias y build ---
+node_modules
+.next
+out
+build
+
+# --- git y sistema ---
+.git
+.gitignore
+.DS_Store
+
+# --- logs y entorno ---
+*.log
+dev.log
+server.log
+.env
+
+# --- docker (no se necesitan dentro de la imagen) ---
+Dockerfile
+docker-compose.yml
+.dockerignore
