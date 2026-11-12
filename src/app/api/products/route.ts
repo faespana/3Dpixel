@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { getAdmin } from '@/lib/auth'
 import { validateTierValue } from '@/lib/pricing'
-import { removeUploadedFile, saveUploadedMedia, UploadError } from '@/lib/uploads'
+import { removeUploadedFile } from '@/lib/uploads'
 import { parseColorsField, parseColorsInput } from '@/lib/color'
 import { TIER_PRICE_KEYS, type TierPriceKey } from '@/lib/types'
 import { MAX_MEDIA_PER_PRODUCT } from '@/lib/types'
@@ -54,45 +54,23 @@ export async function GET(req: NextRequest) {
   }
 }
 
-/** Traduce un error de subida a una respuesta HTTP 400. */
-function uploadErrorResponse(e: unknown): NextResponse | null {
-  if (!(e instanceof UploadError)) return null
-  const messages: Record<UploadError['code'], string> = {
-    INVALID_TYPE:
-      'Formato no permitido. Fotos: JPG, PNG, WEBP o GIF. Videos: MP4, WEBM o MOV.',
-    FILE_TOO_LARGE:
-      'Archivo demasiado grande (máx. 5MB por foto, 30MB por video)',
-    INVALID_IMAGE:
-      'La imagen no es válida o está dañada. Prueba con otra foto.',
-    INVALID_VIDEO:
-      'El video no se pudo guardar. Prueba con un video MP4 corto.',
-  }
-  return NextResponse.json({ error: messages[e.code] }, { status: 400 })
-}
+type UploadedMedia = { url: string; type: 'image' | 'video' }
 
-/**
- * Guarda los archivos de media (fotos/videos) del formulario.
- * Devuelve los datos para crear las filas ProductMedia o una respuesta 400.
- */
-async function saveMediaFiles(
-  files: File[]
-): Promise<
-  { error: NextResponse } | { data: { url: string; type: 'image' | 'video' }[] }
-> {
-  const saved: { url: string; type: 'image' | 'video' }[] = []
-  for (const file of files) {
-    try {
-      const media = await saveUploadedMedia(file)
-      saved.push(media)
-    } catch (e) {
-      // Limpia lo ya guardado antes de fallar
-      await Promise.all(saved.map((m) => removeUploadedFile(m.url)))
-      const errorResponse = uploadErrorResponse(e)
-      if (errorResponse) return { error: errorResponse }
-      throw e
-    }
+function readMediaItems(value: FormDataEntryValue | null): UploadedMedia[] | null {
+  try {
+    const parsed = JSON.parse(String(value ?? '[]'))
+    if (!Array.isArray(parsed)) return null
+    const items = parsed as UploadedMedia[]
+    if (items.some((item) =>
+      !item || typeof item.url !== 'string' ||
+      !item.url.startsWith('https://') ||
+      !item.url.includes('.public.blob.vercel-storage.com/') ||
+      !['image', 'video'].includes(item.type)
+    )) return null
+    return items
+  } catch {
+    return null
   }
-  return { data: saved }
 }
 
 export async function POST(req: NextRequest) {
@@ -153,26 +131,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: colorsParsed.error }, { status: 400 })
     }
 
-    const files = form
-      .getAll('media')
-      .filter((f): f is File => f instanceof File && f.size > 0)
-
-    if (files.length === 0) {
+    const savedMedia = readMediaItems(form.get('mediaItems'))
+    if (!savedMedia || savedMedia.length === 0) {
       return NextResponse.json(
         { error: 'Debes subir al menos una foto del producto' },
         { status: 400 }
       )
     }
-    if (files.length > MAX_MEDIA_PER_PRODUCT) {
+    if (savedMedia.length > MAX_MEDIA_PER_PRODUCT) {
       return NextResponse.json(
         { error: `Máximo ${MAX_MEDIA_PER_PRODUCT} fotos/videos por producto` },
         { status: 400 }
       )
     }
-
-    const result = await saveMediaFiles(files)
-    if ('error' in result) return result.error
-    const savedMedia = result.data
 
     // Debe existir al menos una foto para la portada
     const firstImage = savedMedia.find((m) => m.type === 'image')

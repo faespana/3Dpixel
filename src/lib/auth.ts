@@ -4,7 +4,8 @@ import { db } from '@/lib/db'
 
 export const ADMIN_COOKIE = 'pixel_admin'
 
-const SECRET = process.env.AUTH_SECRET ?? '3dpixel-store-secret-v1'
+// Configura AUTH_SECRET en Vercel con un valor aleatorio largo.
+const SECRET = process.env.AUTH_SECRET ?? 'SOLO-DESARROLLO-NO-USAR-EN-PRODUCCION-3dpixel'
 const MAX_AGE_SECONDS = 60 * 60 * 24 * 7 // 7 días
 
 function sign(payload: string): string {

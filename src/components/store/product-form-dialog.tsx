@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { upload } from '@vercel/blob/client'
 import {
   Film,
   Loader2,
@@ -284,13 +285,24 @@ export function ProductFormDialog({
         )
       )
 
-      // Galería: qué media existente se conserva + archivos nuevos
+      // Primero se envían los archivos directamente a Vercel Blob.
+      // Así los videos de hasta 30 MB no atraviesan el límite de 4.5 MB
+      // de las funciones de Vercel.
+      const uploadedMedia: { url: string; type: MediaKind }[] = []
+      for (const item of newFiles) {
+        const blob = await upload(item.file.name, item.file, {
+          access: 'public',
+          handleUploadUrl: '/api/upload',
+          multipart: item.file.size > 5 * 1024 * 1024,
+        })
+        uploadedMedia.push({ url: blob.url, type: item.type })
+      }
+
+      // Galería: qué media existente se conserva + archivos nuevos ya alojados.
       if (isEditing) {
         formData.append('keepMedia', JSON.stringify(keptMedia.map((m) => m.id)))
       }
-      for (const item of newFiles) {
-        formData.append('media', item.file)
-      }
+      formData.append('mediaItems', JSON.stringify(uploadedMedia))
 
       const res = await fetch(
         isEditing ? `/api/products/${product.id}` : '/api/products',

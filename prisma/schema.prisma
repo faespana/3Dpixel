@@ -3,34 +3,31 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
 model Product {
-  id             String   @id @default(cuid())
-  name           String
-  description    String
-  price          Float
-  priceDozen     Float?
-  priceTwoDozen  Float?
+  id              String   @id
+  name            String
+  description     String
+  price           Float
+  priceDozen      Float?
+  priceTwoDozen   Float?
   priceThreeDozen Float?
-  priceBulk      Float?
-  category       String
-  image          String
-  featured       Boolean  @default(false)
-  /** Paleta de colores del producto: JSON `[{"name":"Negro","hex":"#111111"}]`. */
-  colors         String?
-  createdAt      DateTime @default(now())
-
-  media ProductMedia[]
+  priceBulk       Float?
+  category        String
+  image           String
+  featured        Boolean  @default(false)
+  colors          String?
+  createdAt       DateTime @default(now())
+  media           ProductMedia[]
 
   @@index([category])
 }
 
-/** Fotos y videos cortos de un producto, ordenados para la galería. */
 model ProductMedia {
-  id        String   @id @default(cuid())
+  id        String   @id
   productId String
   product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   url       String
@@ -42,7 +39,7 @@ model ProductMedia {
 }
 
 model AdminUser {
-  id           String   @id @default(cuid())
+  id           String   @id
   username     String   @unique
   passwordHash String
   salt         String

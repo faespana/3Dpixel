@@ -4,12 +4,13 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint .",
     "db:push": "prisma db push",
     "db:generate": "prisma generate",
-    "db:seed": "tsx prisma/seed.ts && tsx prisma/seed-admin.ts"
+    "db:seed": "tsx prisma/seed.ts && tsx prisma/seed-admin.ts",
+    "db:import": "tsx scripts/import-postgres.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -77,11 +78,11 @@
     "uuid": "^11.1.0",
     "vaul": "^1.1.2",
     "zod": "^4.0.2",
-    "zustand": "^5.0.6"
+    "zustand": "^5.0.6",
+    "@vercel/blob": "^2.0.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@types/node": "26.6.6",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",

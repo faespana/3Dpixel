@@ -69,13 +69,7 @@ export const TIER_PRICE_KEYS: TierPriceKey[] = [
   'priceBulk',
 ]
 
-/**
- * Ruta pública de las imágenes subidas por el administrador.
- * Se sirven mediante /api/uploads/[file] y se muestran sin optimizar.
- */
-export const UPLOADED_IMAGE_PREFIX = '/api/uploads/'
-
-/** Indica si una imagen proviene de una subida del administrador. */
+/** Identifica imágenes alojadas fuera del directorio estático de Next.js. */
 export function isUploadedImage(src: string): boolean {
-  return src.startsWith(UPLOADED_IMAGE_PREFIX)
+  return src.startsWith('https://') || src.startsWith('/api/uploads/')
 }

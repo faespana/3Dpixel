@@ -1,14 +1,16 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
-  /* La tienda usa el modo estándar de Next.js: `npm run build` + `npm start`.
-     Las fotos y videos que sube el administrador se guardan en `public/uploads`
-     y se sirven por `/api/uploads/[file]`, por lo que funcionan igual en
-     desarrollo y en producción. */
-  typescript: {
-    ignoreBuildErrors: true,
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**.public.blob.vercel-storage.com',
+        pathname: '/**',
+      },
+    ],
   },
   reactStrictMode: false,
-};
+}
 
-export default nextConfig;
+export default nextConfig

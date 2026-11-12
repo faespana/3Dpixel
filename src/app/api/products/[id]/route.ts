@@ -2,11 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { getAdmin } from '@/lib/auth'
 import { validateTierValue } from '@/lib/pricing'
-import {
-  removeUploadedFile,
-  saveUploadedMedia,
-  UploadError,
-} from '@/lib/uploads'
+import { removeUploadedFile } from '@/lib/uploads'
 import { parseColorsInput } from '@/lib/color'
 import { TIER_PRICE_KEYS, MAX_MEDIA_PER_PRODUCT, type TierPriceKey } from '@/lib/types'
 
@@ -20,19 +16,23 @@ const MEDIA_INCLUDE = {
   },
 }
 
-function uploadErrorMessage(e: unknown): string | null {
-  if (!(e instanceof UploadError)) return null
-  const messages: Record<UploadError['code'], string> = {
-    INVALID_TYPE:
-      'Formato no permitido. Fotos: JPG, PNG, WEBP o GIF. Videos: MP4, WEBM o MOV.',
-    FILE_TOO_LARGE:
-      'Archivo demasiado grande (máx. 5MB por foto, 30MB por video)',
-    INVALID_IMAGE:
-      'La imagen no es válida o está dañada. Prueba con otra foto.',
-    INVALID_VIDEO:
-      'El video no se pudo guardar. Prueba con un video MP4 corto.',
+type UploadedMedia = { url: string; type: 'image' | 'video' }
+
+function readMediaItems(value: FormDataEntryValue | null): UploadedMedia[] | null {
+  try {
+    const parsed = JSON.parse(String(value ?? '[]'))
+    if (!Array.isArray(parsed)) return null
+    const items = parsed as UploadedMedia[]
+    if (items.some((item) =>
+      !item || typeof item.url !== 'string' ||
+      !item.url.startsWith('https://') ||
+      !item.url.includes('.public.blob.vercel-storage.com/') ||
+      !['image', 'video'].includes(item.type)
+    )) return null
+    return items
+  } catch {
+    return null
   }
-  return messages[e.code]
 }
 
 export async function PATCH(req: NextRequest, context: RouteContext) {
@@ -132,9 +132,10 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
     }
 
     // ============ Galería (fotos y videos) ============
-    const newFiles = form
-      .getAll('media')
-      .filter((f): f is File => f instanceof File && f.size > 0)
+    const newFiles = readMediaItems(form.get('mediaItems'))
+    if (!newFiles) {
+      return NextResponse.json({ error: 'La lista de archivos no es válida' }, { status: 400 })
+    }
 
     let keptIds: string[] | null = null
     if (form.has('keepMedia')) {
@@ -150,12 +151,10 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
       const currentMedia = [...existing.media].sort(
         (a, b) => a.order - b.order || a.createdAt.getTime() - b.createdAt.getTime()
       )
-      const keptRows =
-        keptIds === null
-          ? currentMedia
-          : keptIds
-              .map((mid) => currentMedia.find((m) => m.id === mid))
-              .filter((m): m is NonNullable<typeof m> => Boolean(m))
+      const keptRows = keptIds === null
+        ? currentMedia
+        : keptIds.map((mid) => currentMedia.find((m) => m.id === mid))
+            .filter((m): m is NonNullable<typeof m> => Boolean(m))
 
       if (keptRows.length + newFiles.length > MAX_MEDIA_PER_PRODUCT) {
         return NextResponse.json(
@@ -164,29 +163,14 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
         )
       }
 
-      // Guarda los archivos nuevos primero (para validar antes de borrar)
-      const savedNew: { url: string; type: string }[] = []
-      for (const file of newFiles) {
-        try {
-          savedNew.push(await saveUploadedMedia(file))
-        } catch (e) {
-          await Promise.all(savedNew.map((m) => removeUploadedFile(m.url)))
-          const message = uploadErrorMessage(e)
-          if (message) {
-            return NextResponse.json({ error: message }, { status: 400 })
-          }
-          throw e
-        }
-      }
-
       const finalItems = [
         ...keptRows.map((m) => ({ url: m.url, type: m.type })),
-        ...savedNew,
+        ...newFiles,
       ]
 
       // Debe quedar al menos una foto para la portada
       if (!finalItems.some((m) => m.type === 'image')) {
-        await Promise.all(savedNew.map((m) => removeUploadedFile(m.url)))
+        await Promise.all(newFiles.map((m) => removeUploadedFile(m.url)))
         return NextResponse.json(
           { error: 'El producto debe conservar al menos una foto' },
           { status: 400 }
