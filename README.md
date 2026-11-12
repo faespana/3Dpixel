@@ -81,7 +81,7 @@ npm start            # sirve en el puerto 3000
 ## 4. Acceso al panel de administración
 
 1. En la tienda, presiona el botón de inicio de sesión (esquina superior).
-2. Usuario: **admin** — Contraseña: **pixel3d2025**.
+2. Usuario: **usuario** — Contraseña: **contraseña**.
 3. Ya dentro del panel podrás:
    - Crear/editar/eliminar productos.
    - Subir **múltiples fotos y videos cortos** por producto (JPG/PNG/WEBP/GIF hasta 5 MB; MP4/WEBM/MOV hasta 30 MB).
@@ -94,7 +94,7 @@ La contraseña vive en la base de datos (tabla `AdminUser`). Para cambiarla:
 
 ```bash
 # 1. Edita prisma/seed-admin.ts y cambia la línea:
-#      const PASSWORD = 'pixel3d2025'      ->  pon tu nueva contraseña
+#      const PASSWORD = 'contraseña'      ->  pon tu nueva contraseña
 # 2. Ejecuta:
 npx tsx prisma/seed-admin.ts
 ```

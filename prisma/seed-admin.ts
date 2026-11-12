@@ -4,8 +4,8 @@ import crypto from 'crypto'
 
 const db = new PrismaClient()
 
-const USERNAME = process.env.ADMIN_USERNAME!
-const PASSWORD = process.env.ADMIN_PASSWORD!
+const USERNAME = admin
+const PASSWORD = pixel3d2025
 
 async function main() {
   const salt = crypto.randomBytes(16).toString('hex')
