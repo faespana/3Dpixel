@@ -1,3 +1,4 @@
+
 import 'dotenv/config' // carga .env para poder ejecutarlo con: npx tsx prisma/seed-admin.ts
 import { PrismaClient } from '@prisma/client'
 import crypto from 'crypto'
@@ -11,7 +12,10 @@ async function main() {
   const salt = crypto.randomBytes(16).toString('hex')
   const passwordHash = crypto.scryptSync(PASSWORD, salt, 64).toString('hex')
 
-  const existing = await db.adminUser.findUnique({ where: { username: USERNAME } })
+  const existing = await db.adminUser.findUnique({
+    where: { username: USERNAME },
+  })
+
   if (existing) {
     await db.adminUser.update({
       where: { username: USERNAME },
@@ -20,7 +24,12 @@ async function main() {
     console.log(`Usuario admin actualizado (${USERNAME}).`)
   } else {
     await db.adminUser.create({
-      data: { username: USERNAME, passwordHash, salt },
+      data: {
+        id: crypto.randomUUID(),
+        username: USERNAME,
+        passwordHash,
+        salt,
+      },
     })
     console.log(`Usuario admin creado (${USERNAME}).`)
   }
